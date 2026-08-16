@@ -18,6 +18,10 @@ const {
   deleteSpot,
   adminToggleSpot,
   getPendingSpots,
+  getMinSlotsPerType,
+  checkSpotConflicts,
+  blockSpot,
+  unblockSpot,
 } = require('../../src/controllers/SpotController');
 
 // ── Helpers ───────────────────────────────────────────
@@ -665,6 +669,229 @@ describe('SpotController', () => {
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({ error: 'Failed to fetch pending spots.' })
       );
+    });
+  });
+
+  describe('getMinSlotsPerType()', () => {
+    it('should compute minimum slots per vehicle type using sweep-line', async () => {
+      const req = mockReq({ params: { id: 'spot-uuid' } });
+      const res = mockRes();
+
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          { vehicle_type: 'Car', start_time: '2026-08-16T10:00:00Z', end_time: '2026-08-16T12:00:00Z' },
+          { vehicle_type: 'Car', start_time: '2026-08-16T11:00:00Z', end_time: '2026-08-16T13:00:00Z' },
+        ],
+      });
+
+      await getMinSlotsPerType(req, res);
+
+      expect(res.json).toHaveBeenCalledWith({
+        minSlotsPerType: { car: 2 },
+      });
+    });
+
+    it('should return 500 on getMinSlotsPerType error', async () => {
+      const req = mockReq({ params: { id: 'spot-uuid' } });
+      const res = mockRes();
+
+      mockQuery.mockRejectedValueOnce(new Error('DB error'));
+
+      await getMinSlotsPerType(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Failed to compute min slots.' });
+    });
+  });
+
+  describe('checkSpotConflicts()', () => {
+    it('should return 400 when startDateTime or endDateTime is missing', async () => {
+      const req = mockReq({ params: { id: 'spot-uuid' }, body: {} });
+      const res = mockRes();
+
+      await checkSpotConflicts(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: 'startDateTime and endDateTime are required.' });
+    });
+
+    it('should return 400 when dates are invalid or start >= end', async () => {
+      const req = mockReq({
+        params: { id: 'spot-uuid' },
+        body: { startDateTime: '2026-08-16T12:00:00Z', endDateTime: '2026-08-16T10:00:00Z' },
+      });
+      const res = mockRes();
+
+      await checkSpotConflicts(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Invalid start or end time.' });
+    });
+
+    it('should check conflicts and return hasConflict true/false', async () => {
+      const req = mockReq({
+        params: { id: 'spot-uuid' },
+        body: { startDateTime: '2026-08-16T10:00:00Z', endDateTime: '2026-08-16T12:00:00Z' },
+      });
+      const res = mockRes();
+
+      mockQuery.mockResolvedValueOnce({ rows: [{ id: 'booking-1' }] });
+
+      await checkSpotConflicts(req, res);
+
+      expect(res.json).toHaveBeenCalledWith({ hasConflict: true });
+    });
+
+    it('should return 500 on checkSpotConflicts error', async () => {
+      const req = mockReq({
+        params: { id: 'spot-uuid' },
+        body: { startDateTime: '2026-08-16T10:00:00Z', endDateTime: '2026-08-16T12:00:00Z' },
+      });
+      const res = mockRes();
+
+      mockQuery.mockRejectedValueOnce(new Error('DB error'));
+
+      await checkSpotConflicts(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Failed to check conflicts.' });
+    });
+  });
+
+  describe('blockSpot()', () => {
+    it('should return 400 if dates missing', async () => {
+      const req = mockReq({ params: { id: 'spot-uuid' }, body: {} });
+      const res = mockRes();
+
+      await blockSpot(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('should return 400 if dates are invalid', async () => {
+      const req = mockReq({
+        params: { id: 'spot-uuid' },
+        body: { startDateTime: 'invalid', endDateTime: 'invalid' },
+      });
+      const res = mockRes();
+
+      await blockSpot(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('should return 404 if spot not found or not owned by user', async () => {
+      const req = mockReq({
+        params: { id: 'spot-uuid' },
+        body: { startDateTime: '2026-08-16T10:00:00Z', endDateTime: '2026-08-16T12:00:00Z' },
+      });
+      const res = mockRes();
+
+      Spot.findById.mockResolvedValue(null);
+
+      await blockSpot(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
+
+    it('should return 400 if spot is already blocked', async () => {
+      const req = mockReq({
+        params: { id: 'spot-uuid' },
+        body: { startDateTime: '2026-08-16T10:00:00Z', endDateTime: '2026-08-16T12:00:00Z' },
+      });
+      const res = mockRes();
+
+      Spot.findById.mockResolvedValue({ ...validSpot, is_blocked_by_seller: true });
+
+      await blockSpot(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Spot is already blocked. Wait for the current block to end.' });
+    });
+
+    it('should return 409 if conflict exists with active bookings', async () => {
+      const req = mockReq({
+        params: { id: 'spot-uuid' },
+        body: { startDateTime: '2026-08-16T10:00:00Z', endDateTime: '2026-08-16T12:00:00Z' },
+      });
+      const res = mockRes();
+
+      Spot.findById.mockResolvedValue(validSpot);
+      mockQuery.mockResolvedValueOnce({ rows: [{ id: 'b1' }] });
+
+      await blockSpot(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Cannot block spot due to overlapping active bookings.' });
+    });
+
+    it('should successfully block spot and return 200', async () => {
+      const req = mockReq({
+        params: { id: 'spot-uuid' },
+        body: { startDateTime: '2026-08-16T10:00:00Z', endDateTime: '2026-08-16T12:00:00Z', reason: 'Renovation' },
+      });
+      const res = mockRes();
+
+      Spot.findById.mockResolvedValue(validSpot);
+      mockQuery
+        .mockResolvedValueOnce({ rows: [] }) // conflict query
+        .mockResolvedValueOnce({ rows: [] }); // update query
+
+      await blockSpot(req, res);
+
+      expect(res.json).toHaveBeenCalledWith({ success: true, message: 'Spot blocked successfully' });
+    });
+
+    it('should return 500 on blockSpot exception', async () => {
+      const req = mockReq({
+        params: { id: 'spot-uuid' },
+        body: { startDateTime: '2026-08-16T10:00:00Z', endDateTime: '2026-08-16T12:00:00Z' },
+      });
+      const res = mockRes();
+
+      Spot.findById.mockRejectedValue(new Error('DB error'));
+
+      await blockSpot(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Failed to block spot.' });
+    });
+  });
+
+  describe('unblockSpot()', () => {
+    it('should return 404 if spot not found or not owned', async () => {
+      const req = mockReq({ params: { id: 'spot-uuid' } });
+      const res = mockRes();
+
+      Spot.findById.mockResolvedValue(null);
+
+      await unblockSpot(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
+
+    it('should unblock spot successfully', async () => {
+      const req = mockReq({ params: { id: 'spot-uuid' } });
+      const res = mockRes();
+
+      Spot.findById.mockResolvedValue(validSpot);
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      await unblockSpot(req, res);
+
+      expect(res.json).toHaveBeenCalledWith({ success: true, message: 'Spot unblocked successfully' });
+    });
+
+    it('should return 500 on unblockSpot exception', async () => {
+      const req = mockReq({ params: { id: 'spot-uuid' } });
+      const res = mockRes();
+
+      Spot.findById.mockRejectedValue(new Error('DB error'));
+
+      await unblockSpot(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Failed to unblock spot.' });
     });
   });
 });

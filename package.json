@@ -47,13 +47,24 @@
   "jest": {
     "testEnvironment": "node",
     "testMatch": [
-      "**/__tests__/**/*.test.js"
+      "**/__tests__/**/*.test.[jt]s?(x)",
+      "**/?(*.)+(spec|test).[jt]s?(x)"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/__tests__/mocks/"
     ],
     "collectCoverageFrom": [
       "src/controllers/**/*.js",
       "src/models/**/*.js",
-      "src/services/**/*.js"
+      "src/services/**/*.js",
+      "!**/node_modules/**"
     ],
-    "coverageDirectory": "coverage"
+    "coverageDirectory": "coverage",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ]
   }
 }
