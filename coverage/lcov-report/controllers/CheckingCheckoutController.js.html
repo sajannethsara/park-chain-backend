@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>41/41</span>
+                <span class='fraction'>42/42</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>25/25</span>
+                <span class='fraction'>23/23</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>37/37</span>
+                <span class='fraction'>39/39</span>
             </div>
         
             
@@ -169,8 +169,17 @@
 <a name='L104'></a><a href='#L104'>104</a>
 <a name='L105'></a><a href='#L105'>105</a>
 <a name='L106'></a><a href='#L106'>106</a>
-<a name='L107'></a><a href='#L107'>107</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a>
+<a name='L115'></a><a href='#L115'>115</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -195,27 +204,30 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -249,6 +261,10 @@
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -279,6 +295,7 @@
 &nbsp;
 const Booking = require('../models/Booking');
 const { calculateDistance } = require('../utils/geoUtils');
+const { fireEvent, EVENTS } = require('../events/NotificationEvents');
 &nbsp;
 // ============================================
 // PUT /api/bookings/:id/checkin — Check In (Geofenced)
@@ -286,7 +303,7 @@ const { calculateDistance } = require('../utils/geoUtils');
 const checkIn = async (req, res) =&gt; {
   try {
     const { driverLocation } = req.body;
-    const CHECK_IN_RADIUS_TOLERANCE_METERS = 10;
+    const CHECK_IN_RADIUS_TOLERANCE_METERS = 60;
 &nbsp;
     if (!driverLocation || !driverLocation.lat || !driverLocation.lng) {
       return res.status(400).json({
@@ -300,12 +317,6 @@ const checkIn = async (req, res) =&gt; {
       return res.status(403).json({ error: 'This is not your booking.' });
     }
 &nbsp;
-    if (existing.booking_status !== 'confirmed') {
-      return res.status(400).json({
-        error: `Cannot check in. Booking status is: ${existing.booking_status}. Must be 'confirmed'.`
-      });
-    }
-&nbsp;
     const distance = calculateDistance(
       parseFloat(driverLocation.lat),
       parseFloat(driverLocation.lng),
@@ -315,13 +326,22 @@ const checkIn = async (req, res) =&gt; {
 &nbsp;
     if (distance &gt; CHECK_IN_RADIUS_TOLERANCE_METERS) {
       return res.status(400).json({
-        error: 'Too far from the spot. Please get closer to check-in.',
+        error: `Too far from the spot. Calculated distance: ${Math.round(distance)} meters.`,
         currentDistance: Math.round(distance)
       });
     }
 &nbsp;
     const booking = await Booking.checkIn(req.params.id);
-    if (!booking) return res.status(400).json({ error: 'Check-in failed.' });
+    if (!booking) {
+      return res.status(409).json({
+        error: 'Booking has already been checked in or is invalid.'
+      });
+    }
+&nbsp;
+    //FIRE EVENT FOR CHECK IN
+    await fireEvent(EVENTS.CHECK_IN, booking.user_id, {
+      spotName: booking.spot_name
+    });
 &nbsp;
     res.json({
       message: 'Checked in successfully. Parking timer started!',
@@ -355,7 +375,11 @@ const checkOut = async (req, res) =&gt; {
     if (!booking) return res.status(400).json({ error: 'Check-out failed.' });
 &nbsp;
     const hasOvertime = parseFloat(booking.overtime_hours) &gt; 0;
-&nbsp;
+    
+    //FIRE EVENT FOR CHECK OUT
+    await fireEvent(EVENTS.CHECK_OUT, booking.user_id, {
+      spotName: booking.spot_name
+    });
     res.json({
       message: hasOvertime
         ? `Checked out. You stayed ${booking.overtime_hours} hours extra.`
@@ -388,7 +412,7 @@ module.exports = {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-27T14:15:15.703Z
+                at 2026-08-16T09:23:41.879Z
             </div>
         <script src="../prettify.js"></script>
         <script>

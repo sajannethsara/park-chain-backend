@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">96.22% </span>
+                <span class="strong">96.39% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>102/106</span>
+                <span class='fraction'>107/111</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">96.22% </span>
+                <span class="strong">96.39% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>102/106</span>
+                <span class='fraction'>107/111</span>
             </div>
         
             
@@ -418,7 +418,22 @@
 <a name='L353'></a><a href='#L353'>353</a>
 <a name='L354'></a><a href='#L354'>354</a>
 <a name='L355'></a><a href='#L355'>355</a>
-<a name='L356'></a><a href='#L356'>356</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L356'></a><a href='#L356'>356</a>
+<a name='L357'></a><a href='#L357'>357</a>
+<a name='L358'></a><a href='#L358'>358</a>
+<a name='L359'></a><a href='#L359'>359</a>
+<a name='L360'></a><a href='#L360'>360</a>
+<a name='L361'></a><a href='#L361'>361</a>
+<a name='L362'></a><a href='#L362'>362</a>
+<a name='L363'></a><a href='#L363'>363</a>
+<a name='L364'></a><a href='#L364'>364</a>
+<a name='L365'></a><a href='#L365'>365</a>
+<a name='L366'></a><a href='#L366'>366</a>
+<a name='L367'></a><a href='#L367'>367</a>
+<a name='L368'></a><a href='#L368'>368</a>
+<a name='L369'></a><a href='#L369'>369</a>
+<a name='L370'></a><a href='#L370'>370</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -641,6 +656,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -726,6 +742,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -752,6 +775,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -774,10 +802,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// src/controllers/XummController.js
-const jwt         = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const xummService = require('../services/XummService');
-const User        = require('../models/User');
+const User = require('../models/User');
 require('dotenv').config();
+const { EVENTS, fireEvent } = require('../events/NotificationEvents');
 &nbsp;
 // ── Helper: Generate JWT token ────────────────────────
 const generateToken = (userId, role) =&gt; {
@@ -798,10 +827,10 @@ const login = async (req, res) =&gt; {
 &nbsp;
     // Return deepLink + uuid to Flutter
     res.json({
-      message:  'Open Xaman app to sign in',
-      uuid:     payload.uuid,      
-      deepLink: payload.deepLink,   
-      qrUrl:    payload.qrUrl      
+      message: 'Open Xaman app to sign in',
+      uuid: payload.uuid,
+      deepLink: payload.deepLink,
+      qrUrl: payload.qrUrl
     });
   } catch (error) {
     console.error('XUMM login error:', error.message);
@@ -830,7 +859,7 @@ const verify = async (req, res) =&gt; {
 &nbsp;
     if (!result.signed) {
       return res.status(401).json({
-        error:  'Sign-in not completed.',
+        error: 'Sign-in not completed.',
         reason: result.reason
       });
     }
@@ -890,9 +919,9 @@ const createPayment = async (req, res) =&gt; {
       });
     }
 &nbsp;
-    const token      = authHeader.split(' ')[1];
+    const token = authHeader.split(' ')[1];
     const jwtPayload = jwt.verify(token, process.env.JWT_SECRET);
-    const user       = await User.findById(jwtPayload.userId);
+    const user = await User.findById(jwtPayload.userId);
 &nbsp;
     if (!user) {
       return res.status(401).json({
@@ -902,7 +931,7 @@ const createPayment = async (req, res) =&gt; {
 &nbsp;
     // ── Check 3: Booking exists? ──────────────────────
     const Booking = require('../models/Booking');
-    const booking  = await Booking.findById(bookingId);
+    const booking = await Booking.findById(bookingId);
 &nbsp;
     if (!booking) {
       return res.status(404).json({
@@ -933,27 +962,27 @@ const createPayment = async (req, res) =&gt; {
     }
 &nbsp;
     // ── Convert XRP to drops ──────────────────────────
-    const totalXrp    = parseFloat(booking.total_price_xrp);
+    const totalXrp = parseFloat(booking.total_price_xrp);
     const amountDrops = Math.floor(totalXrp * 1000000).toString();
-     
+&nbsp;
     // ── Create Xaman payment request ──────────────────
     const payload = await xummService.createPaymentPayload(
-      user.wallet_address, 
-      adminAddress,         
-      amountDrops,         
-      bookingId            
+      user.wallet_address,
+      adminAddress,
+      amountDrops,
+      bookingId
     );
 &nbsp;
     // ── Update booking: unpaid → processing ───────────
     await Booking.updatePaymentStatus(bookingId, 'processing');
 &nbsp;
     res.json({
-      message:     'Payment request created. Approve in Xaman app.',
-      uuid:        payload.uuid,
-      deepLink:    payload.deepLink,
-      qrUrl:       payload.qrUrl,
+      message: 'Payment request created. Approve in Xaman app.',
+      uuid: payload.uuid,
+      deepLink: payload.deepLink,
+      qrUrl: payload.qrUrl,
       bookingId,
-      amount:      totalXrp,
+      amount: totalXrp,
       destination: adminAddress,
     });
 &nbsp;
@@ -996,9 +1025,10 @@ const verifyPayment = async (req, res) =&gt; {
       // Driver REJECTED payment
       const Booking = require('../models/Booking');
       await Booking.updatePaymentStatus(bookingId, 'failed');
+      await Booking.updateStatus(bookingId, 'cancelled');
 &nbsp;
       return res.status(400).json({
-        error:  'Payment not signed.',
+        error: 'Payment not signed.',
         reason: result.reason
       });
     }
@@ -1007,7 +1037,7 @@ const verifyPayment = async (req, res) =&gt; {
 &nbsp;
     // ── Get booking details ───────────────────────────
     const Booking = require('../models/Booking');
-    const booking  = await Booking.findById(bookingId);
+    const booking = await Booking.findById(bookingId);
 &nbsp;
     if (!booking) {
       return res.status(404).json({
@@ -1017,39 +1047,39 @@ const verifyPayment = async (req, res) =&gt; {
 &nbsp;
     // ── Get transaction hash from blockchain ──────────
     const payloadDetails = await xummService.getPayloadDetails(uuid);
-    const txHash         = payloadDetails?.response?.txid || <span class="branch-1 cbranch-no" title="branch not covered" >null;</span>
+    const txHash = payloadDetails?.response?.txid || <span class="branch-1 cbranch-no" title="branch not covered" >null;</span>
     console.log(`Transaction hash: ${txHash}`);
 &nbsp;
     // ── Setup constants ───────────────────────────────
-    const Transaction   = require('../models/Transaction');
-    const totalXrp      = parseFloat(booking.total_price_xrp);
-    const adminAddress  = process.env.ADMIN_WALLET_ADDRESS;
+    const Transaction = require('../models/Transaction');
+    const totalXrp = parseFloat(booking.total_price_xrp);
+    const adminAddress = process.env.ADMIN_WALLET_ADDRESS;
 &nbsp;
     // ── STEP 1: Record Driver → Admin transaction ─────
     <span class="missing-if-branch" title="else path not taken" >E</span>if (txHash) {
       await Transaction.create({
         bookingId,
-        txHash,  
-        fromAddress: result.walletAddress, 
-        toAddress:   adminAddress,          
-        amountXrp:   totalXrp,
+        txHash,
+        fromAddress: result.walletAddress,
+        toAddress: adminAddress,
+        amountXrp: totalXrp,
         amountDrops: Math.floor(totalXrp * 1000000),
-        txType:      'driver_to_admin',
-        status:      'validated',
+        txType: 'driver_to_admin',
+        status: 'validated',
         ledgerIndex: 0,
-        resultCode:  'tesSUCCESS'
+        resultCode: 'tesSUCCESS'
       });
     }
 &nbsp;
     // ── STEP 2: Auto-pay Seller 80% ───────────────────
-    const sellerAmount    = parseFloat(booking.seller_amount_xrp);
+    const sellerAmount = parseFloat(booking.seller_amount_xrp);
     const adminCommission = parseFloat(booking.admin_fee_xrp);
-    const xrplService     = require('../services/XrplService');
+    const xrplService = require('../services/XrplService');
 &nbsp;
     const adminToSellerTx = await xrplService.paySeller(
-      booking.owner_wallet,  
-      sellerAmount,           
-      bookingId              
+      booking.owner_wallet,
+      sellerAmount,
+      bookingId
     );
 &nbsp;
     // ── If seller payment successful ──────────────────
@@ -1058,15 +1088,15 @@ const verifyPayment = async (req, res) =&gt; {
       // ── Record Admin → Seller transaction ──────────
       await Transaction.create({
         bookingId,
-        txHash:      adminToSellerTx.txHash,
-        fromAddress: adminAddress,           
-        toAddress:   booking.owner_wallet,   
-        amountXrp:   sellerAmount,
+        txHash: adminToSellerTx.txHash,
+        fromAddress: adminAddress,
+        toAddress: booking.owner_wallet,
+        amountXrp: sellerAmount,
         amountDrops: Math.floor(sellerAmount * 1000000),
-        txType:      'admin_to_seller',
-        status:      'validated',
+        txType: 'admin_to_seller',
+        status: 'validated',
         ledgerIndex: 0,
-        resultCode:  adminToSellerTx.resultCode
+        resultCode: adminToSellerTx.resultCode
       });
 &nbsp;
       // ── Update booking status ───────────────────────
@@ -1075,30 +1105,41 @@ const verifyPayment = async (req, res) =&gt; {
 &nbsp;
       console.log('Payment fully processed!');
 &nbsp;
+      //--Push Notification--to--driver
+      await fireEvent(EVENTS.BOOKING_CONFIRMED_DRIVER, booking.driver_id, {
+        spotName: booking.spot_title,
+        date: booking.start_time.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }),
+      });
+      //---To---owner
+      await fireEvent(EVENTS.BOOKING_CONFIRMED_OWNER, booking.owner_id, {
+        spotName: booking.spot_title,
+        date: booking.start_time.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }),
+      });
+&nbsp;
       // ── Return success to Flutter ───────────────────
       res.json({
         message: 'Payment successful! Booking confirmed.',
         booking: {
-          id:            bookingId,
-          spotTitle:     booking.spot_title,
+          id: bookingId,
+          spotTitle: booking.spot_title,
           bookingStatus: 'confirmed',
           paymentStatus: 'split_completed'
         },
         payment: {
-          totalPaid:      totalXrp,
+          totalPaid: totalXrp,
           adminCommission,
           sellerReceived: sellerAmount,
           transactions: {
             driverToAdmin: {
               txHash,
-              amount:    totalXrp,
+              amount: totalXrp,
               verifyUrl: txHash
                 ? `https://testnet.xrpl.org/transactions/${txHash}`
                 : <span class="branch-1 cbranch-no" title="branch not covered" >null</span>
             },
             adminToSeller: {
-              txHash:    adminToSellerTx.txHash,
-              amount:    sellerAmount,
+              txHash: adminToSellerTx.txHash,
+              amount: sellerAmount,
               verifyUrl: `https://testnet.xrpl.org/transactions/${adminToSellerTx.txHash}`
             }
           }
@@ -1109,6 +1150,7 @@ const verifyPayment = async (req, res) =&gt; {
       // ── Seller payment FAILED ─────────────────────
       console.error('Admin → Seller payment failed');
       await Booking.updatePaymentStatus(bookingId, 'failed');
+      await Booking.updateStatus(bookingId, 'cancelled');
 &nbsp;
       res.status(500).json({
         error: 'Seller payout failed. Please contact support.'
@@ -1135,7 +1177,7 @@ module.exports = {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-29T11:17:47.930Z
+                at 2026-08-16T09:23:41.879Z
             </div>
         <script src="../prettify.js"></script>
         <script>

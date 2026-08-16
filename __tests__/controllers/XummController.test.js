@@ -9,6 +9,13 @@ jest.mock('../../src/models/User');
 jest.mock('../../src/models/Booking');
 jest.mock('../../src/models/Transaction');
 jest.mock('../../src/services/XrplService');
+jest.mock('../../src/events/NotificationEvents', () => ({
+  fireEvent: jest.fn().mockResolvedValue(),
+  EVENTS: {
+    BOOKING_CONFIRMED_DRIVER: 'BOOKING_CONFIRMED_DRIVER',
+    BOOKING_CONFIRMED_OWNER: 'BOOKING_CONFIRMED_OWNER',
+  },
+}));
 jest.mock('jsonwebtoken');
 
 const xummService = require('../../src/services/XummService');
@@ -605,6 +612,8 @@ describe('XummController', () => {
     const validBooking = {
       id:                 'booking-uuid-123',
       driver_id:          'driver-uuid',
+      owner_id:           'owner-uuid',
+      start_time:         new Date('2026-08-16T10:00:00Z'),
       total_price_xrp:    '4.000000',
       admin_fee_xrp:      '0.800000',
       seller_amount_xrp:  '3.200000',

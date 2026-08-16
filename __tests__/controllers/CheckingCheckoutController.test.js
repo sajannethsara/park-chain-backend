@@ -9,6 +9,13 @@ jest.mock('../../src/models/Booking');
 jest.mock('../../src/utils/geoUtils', () => ({
     calculateDistance: jest.fn(),
 }));
+jest.mock('../../src/events/NotificationEvents', () => ({
+    fireEvent: jest.fn().mockResolvedValue(),
+    EVENTS: {
+        CHECK_IN: 'CHECK_IN',
+        CHECK_OUT: 'CHECK_OUT',
+    },
+}));
 
 const Booking = require('../../src/models/Booking');
 const { calculateDistance } = require('../../src/utils/geoUtils');
@@ -109,7 +116,7 @@ describe('CheckingCheckoutController', () => {
             expect(res.json).toHaveBeenCalledWith({ error: 'This is not your booking.' });
         });
 
-        it('should return 400 if the booking status is not "confirmed"', async () => {
+        it('should return 409 if the booking status is not "confirmed"', async () => {
             // Arrange
             const req = mockReq({ body: { driverLocation: { lat: 10.0, lng: 20.0 } } });
             const res = mockRes();
@@ -117,15 +124,19 @@ describe('CheckingCheckoutController', () => {
                 id: 'booking-123',
                 driver_id: 'driver-uuid',
                 booking_status: 'pending', // Invalid status for check-in
+                spot_latitude: '10.0',
+                spot_longitude: '20.0',
             });
+            calculateDistance.mockReturnValue(5);
+            Booking.checkIn.mockResolvedValue(null);
 
             // Act
             await CheckingCheckoutController.checkIn(req, res);
 
             // Assert
-            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.status).toHaveBeenCalledWith(409);
             expect(res.json).toHaveBeenCalledWith({
-                error: "Cannot check in. Booking status is: pending. Must be 'confirmed'.",
+                error: 'Booking has already been checked in or is invalid.',
             });
         });
 
@@ -133,7 +144,7 @@ describe('CheckingCheckoutController', () => {
         // GEOFENCING & BUSINESS LOGIC TESTS
         // ==========================================
 
-        it('should return 400 if distance exceeds the 10-meter tolerance', async () => {
+        it('should return 400 if distance exceeds the 60-meter tolerance', async () => {
             // Arrange
             const req = mockReq({ body: { driverLocation: { lat: 10.0, lng: 20.0 } } });
             const res = mockRes();
@@ -144,7 +155,7 @@ describe('CheckingCheckoutController', () => {
                 spot_latitude: '10.001',
                 spot_longitude: '20.001',
             });
-            calculateDistance.mockReturnValue(15); // Distance is 15 meters (> 10m limit)
+            calculateDistance.mockReturnValue(75); // Distance is 75 meters (> 60m limit)
 
             // Act
             await CheckingCheckoutController.checkIn(req, res);
@@ -152,13 +163,13 @@ describe('CheckingCheckoutController', () => {
             // Assert
             expect(res.status).toHaveBeenCalledWith(400);
             expect(res.json).toHaveBeenCalledWith({
-                error: 'Too far from the spot. Please get closer to check-in.',
-                currentDistance: 15,
+                error: 'Too far from the spot. Calculated distance: 75 meters.',
+                currentDistance: 75,
             });
             expect(Booking.checkIn).not.toHaveBeenCalled();
         });
 
-        it('should return 400 if the database checkIn operation fails (returns falsy)', async () => {
+        it('should return 409 if the database checkIn operation fails (returns falsy)', async () => {
             // Arrange
             const req = mockReq({ body: { driverLocation: { lat: 10.0, lng: 20.0 } } });
             const res = mockRes();
@@ -166,16 +177,18 @@ describe('CheckingCheckoutController', () => {
                 id: 'booking-123',
                 driver_id: 'driver-uuid',
                 booking_status: 'confirmed',
+                spot_latitude: '10.0',
+                spot_longitude: '20.0',
             });
             calculateDistance.mockReturnValue(5); // Within tolerance
-            Booking.checkIn.mockResolvedValue(null); // DB failure
+            Booking.checkIn.mockResolvedValue(null); // DB failure or already checked in
 
             // Act
             await CheckingCheckoutController.checkIn(req, res);
 
             // Assert
-            expect(res.status).toHaveBeenCalledWith(400);
-            expect(res.json).toHaveBeenCalledWith({ error: 'Check-in failed.' });
+            expect(res.status).toHaveBeenCalledWith(409);
+            expect(res.json).toHaveBeenCalledWith({ error: 'Booking has already been checked in or is invalid.' });
         });
 
         it('should return 200 and success message when geofence passes and db updates', async () => {

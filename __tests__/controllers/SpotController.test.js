@@ -429,10 +429,10 @@ describe('SpotController', () => {
       );
     });
 
-    it('should return 400 when hourly rates count does not match vehicle types', async () => {
+    it('should return 400 when vehicleTypes and slotsPerType length do not match', async () => {
       const req = mockReq({
         params: { id: 'spot-uuid' },
-        body: { pricesPerHour: [3] },
+        body: { vehicleTypes: ['Car', 'Bike'], slotsPerType: [5] },
       });
       const res = mockRes();
 
@@ -443,7 +443,7 @@ describe('SpotController', () => {
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          error: 'Hourly rates count must match the existing vehicle type count.',
+          error: 'vehicleTypes and slotsPerType arrays must be the same length.',
         })
       );
     });

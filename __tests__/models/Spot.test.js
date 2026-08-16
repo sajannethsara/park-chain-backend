@@ -308,14 +308,18 @@ describe('Spot Model', () => {
 
       expect(result).toEqual(mockSpot);
       expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('WHERE id = $8 AND owner_id = $9'),
+        expect.stringContaining('WHERE id = $12 AND owner_id = $13'),
         [
           'Updated Title',
           'Updated Description',
           'Updated Address',
           6.9,
           79.8,
+          null,
+          null,
           [7],
+          null,
+          null,
           ['https://img.example/new.jpg'],
           'spot-uuid',
           'owner-uuid',
