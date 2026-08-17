@@ -68,7 +68,7 @@ describe('KybRoutes', () => {
 
     it('should respond with 400 and clear message if multer custom mimetype error is hit', () => {
         mockUploadSingle.mockImplementation((req, res, callback) => {
-            const err = new Error('Unsupported file type. Allowed types: PDF, JPG, JPEG, PNG.');
+            const err = new Error('Unsupported file type. Allowed types: JPG, JPEG, PNG.');
             callback(err);
         });
 
@@ -82,7 +82,7 @@ describe('KybRoutes', () => {
         handleUpload(req, res, next);
 
         expect(res.status).toHaveBeenCalledWith(400);
-        expect(res.json).toHaveBeenCalledWith({ error: 'Unsupported file type. Allowed types: PDF, JPG, JPEG, PNG.' });
+        expect(res.json).toHaveBeenCalledWith({ error: 'Unsupported file type. Allowed types: JPG, JPEG, PNG.' });
         expect(next).not.toHaveBeenCalled();
     });
 

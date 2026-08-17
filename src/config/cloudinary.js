@@ -14,8 +14,8 @@ const kybStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: 'kyb_documents',     // Cloudinary folder name
-    allowed_formats: ['jpg', 'png', 'jpeg', 'pdf'],
-    resource_type: 'auto'
+    allowed_formats: ['jpg', 'png', 'jpeg'],
+    resource_type: 'image'
   }
 });
 
@@ -41,9 +41,9 @@ const upload = multer({
   storage: kybStorage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
   fileFilter: (req, file, cb) => {
-    const allowedMimeTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png'];
     if (!allowedMimeTypes.includes(file.mimetype)) {
-      return cb(new Error('Unsupported file type. Allowed types: PDF, JPG, JPEG, PNG.'), false);
+      return cb(new Error('Unsupported file type. Allowed types: JPG, JPEG, PNG.'), false);
     }
     cb(null, true);
   }
