@@ -12,7 +12,7 @@ const checkIn = async (req, res) => {
     const { driverLocation } = req.body;
     const CHECK_IN_RADIUS_TOLERANCE_METERS = 50;
 
-    if (!driverLocation || !driverLocation.lat || !driverLocation.lng) {
+    if (!driverLocation || driverLocation.lat == null || driverLocation.lng == null) {
       return res.status(400).json({
         error: 'Driver location (lat, lng) is required for check-in.'
       });
