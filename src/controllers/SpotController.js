@@ -7,7 +7,7 @@
 const Spot = require('../models/Spot');
 const KybSubmission = require('../models/KybSubmission');
 const { query } = require('../config/db');
-const { fireEvent , EVENTS } = require('../events/NotificationEvents');
+const { fireEvent, EVENTS } = require('../events/NotificationEvents');
 
 // ============================================
 // POST /api/spots — Create a new spot (seller only)
@@ -287,7 +287,7 @@ const updateSpot = async (req, res) => {
         const events = [];
         for (const iv of intervals) {
           events.push({ time: iv.start.getTime(), delta: 1 });
-          events.push({ time: iv.end.getTime(),   delta: -1 });
+          events.push({ time: iv.end.getTime(), delta: -1 });
         }
         events.sort((a, b) => {
           const timeDiff = a.time - b.time;
@@ -317,10 +317,10 @@ const updateSpot = async (req, res) => {
         }
       }
       // All checks passed — persist slot structure
-      updates.vehicleTypes  = rawVehicleTypes;
-      updates.slotsPerType  = rawSlotsPerType;
+      updates.vehicleTypes = rawVehicleTypes;
+      updates.slotsPerType = rawSlotsPerType;
       updates.pricesPerHour = rawPricesPerHour;
-      updates.totalSlots    = rawSlotsPerType.reduce((sum, s) => sum + s, 0);
+      updates.totalSlots = rawSlotsPerType.reduce((sum, s) => sum + s, 0);
     } else {
       // No slot changes sent — don't accidentally clear them
       delete updates.vehicleTypes;
@@ -432,9 +432,9 @@ const adminToggleSpot = async (req, res) => {
 
     console.log(`🛡️ Admin ${nextAvailability ? 'Activated' : 'Blocked'} spot: "${updatedSpot.title}"`);
 
-    res.json({ 
-      message: `Spot is now ${updatedSpot.is_available ? 'Active' : 'Blocked'}.`, 
-      spot: updatedSpot 
+    res.json({
+      message: `Spot is now ${updatedSpot.is_available ? 'Active' : 'Blocked'}.`,
+      spot: updatedSpot
     });
 
   } catch (error) {
@@ -455,10 +455,10 @@ const deleteSpot = async (req, res) => {
     // 1. FIRST, get the KYB substitution ID attached to this spot
     // (Adjust the SQL based on your actual table/column names)
     const result = await query(
-      'SELECT kyb_submission_id FROM spots WHERE id = $1 AND owner_id = $2', 
+      'SELECT kyb_submission_id FROM spots WHERE id = $1 AND owner_id = $2',
       [spotId, ownerId]
     );
-    
+
     // Check if the spot exists before continuing
     const spotData = result.rows[0];
     if (!spotData) {
@@ -473,7 +473,7 @@ const deleteSpot = async (req, res) => {
     // 3. FINALLY, safely delete the KYB submission record if it exists
     if (kybSubmissionId) {
       await query(
-        'DELETE FROM kyb_submissions WHERE id = $1', 
+        'DELETE FROM kyb_submissions WHERE id = $1',
         [kybSubmissionId]
       );
     }
@@ -528,7 +528,7 @@ const getMinSlotsPerType = async (req, res) => {
       const events = [];
       for (const iv of intervals) {
         events.push({ time: iv.start.getTime(), delta: 1 });
-        events.push({ time: iv.end.getTime(),   delta: -1 });
+        events.push({ time: iv.end.getTime(), delta: -1 });
       }
       events.sort((a, b) => {
         const timeDiff = a.time - b.time;
@@ -556,7 +556,7 @@ const checkSpotConflicts = async (req, res) => {
   try {
     const spotId = req.params.id;
     const { startDateTime, endDateTime } = req.body;
-    
+
     if (!startDateTime || !endDateTime) {
       return res.status(400).json({ error: 'startDateTime and endDateTime are required.' });
     }

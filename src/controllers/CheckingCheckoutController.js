@@ -10,9 +10,9 @@ const { fireEvent, EVENTS } = require('../events/NotificationEvents');
 const checkIn = async (req, res) => {
   try {
     const { driverLocation } = req.body;
-    const CHECK_IN_RADIUS_TOLERANCE_METERS = 60;
+    const CHECK_IN_RADIUS_TOLERANCE_METERS = 50;
 
-    if (!driverLocation || !driverLocation.lat || !driverLocation.lng) {
+    if (!driverLocation || driverLocation.lat == null || driverLocation.lng == null) {
       return res.status(400).json({
         error: 'Driver location (lat, lng) is required for check-in.'
       });
@@ -22,6 +22,12 @@ const checkIn = async (req, res) => {
     if (!existing) return res.status(404).json({ error: 'Booking not found.' });
     if (existing.driver_id !== req.user.id) {
       return res.status(403).json({ error: 'This is not your booking.' });
+    }
+
+    if (existing.booking_status !== 'confirmed') {
+      return res.status(400).json({
+        error: `Cannot check in. Booking status is: ${existing.booking_status}. Must be 'confirmed'.`
+      });
     }
 
     const distance = calculateDistance(
