@@ -37,7 +37,17 @@ const profileStorage = new CloudinaryStorage({
   }
 });
 
-const upload = multer({ storage: kybStorage });
+const upload = multer({
+  storage: kybStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  fileFilter: (req, file, cb) => {
+    const allowedMimeTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      return cb(new Error('Unsupported file type. Allowed types: PDF, JPG, JPEG, PNG.'), false);
+    }
+    cb(null, true);
+  }
+});
 const spotUpload = multer({ storage: spotStorage });
 const profileUpload = multer({ storage: profileStorage });
 
