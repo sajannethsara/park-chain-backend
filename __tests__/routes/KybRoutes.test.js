@@ -8,6 +8,7 @@ jest.mock('express', () => ({
     Router: jest.fn(() => mockRouter),
 }));
 
+jest.mock('express-rate-limit', () => jest.fn(() => (req, res, next) => next()));
 jest.mock('../../src/middleware/AuthMiddleware', () => jest.fn((req, res, next) => next()));
 jest.mock('../../src/controllers/KybController', () => ({
     submitKyb: jest.fn(),
@@ -32,14 +33,15 @@ describe('KybRoutes', () => {
     beforeAll(() => {
         jest.clearAllMocks();
         require('../../src/routes/KybRoutes');
-        handleUpload = mockRouter.post.mock.calls[0][2];
+        handleUpload = mockRouter.post.mock.calls[0][3];
     });
 
-    it('should register POST / with auth middleware, handleUpload, and KybController.submitKyb', () => {
+    it('should register POST / with auth middleware, kybLimiter, handleUpload, and KybController.submitKyb', () => {
         expect(express.Router).toHaveBeenCalled();
         expect(mockRouter.post).toHaveBeenCalledWith(
             '/',
             authMiddleware,
+            expect.any(Function),
             expect.any(Function),
             KybController.submitKyb
         );
