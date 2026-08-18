@@ -239,9 +239,38 @@ describe('CheckingCheckoutController', () => {
         // VALIDATION TESTS
         // ==========================================
 
+        it('should return 400 if driverLocation is completely missing', async () => {
+            // Arrange
+            const req = mockReq({ body: {} });
+            const res = mockRes();
+
+            // Act
+            await CheckingCheckoutController.checkOut(req, res);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.json).toHaveBeenCalledWith({
+                error: 'Driver location (lat, lng) is required for check-out.',
+            });
+            expect(Booking.findById).not.toHaveBeenCalled();
+        });
+
+        it('should return 400 if driverLocation is missing lat or lng', async () => {
+            // Arrange
+            const req = mockReq({ body: { driverLocation: { lat: 10.0 } } });
+            const res = mockRes();
+
+            // Act
+            await CheckingCheckoutController.checkOut(req, res);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(Booking.findById).not.toHaveBeenCalled();
+        });
+
         it('should return 404 if the booking does not exist', async () => {
             // Arrange
-            const req = mockReq();
+            const req = mockReq({ body: { driverLocation: { lat: 10.0, lng: 20.0 } } });
             const res = mockRes();
             Booking.findById.mockResolvedValue(null);
 
@@ -255,7 +284,7 @@ describe('CheckingCheckoutController', () => {
 
         it('should return 403 if the user is not the owner of the booking', async () => {
             // Arrange
-            const req = mockReq();
+            const req = mockReq({ body: { driverLocation: { lat: 10.0, lng: 20.0 } } });
             const res = mockRes();
             Booking.findById.mockResolvedValue({
                 id: 'booking-123',
@@ -272,7 +301,7 @@ describe('CheckingCheckoutController', () => {
 
         it('should return 400 if the booking status is not "active"', async () => {
             // Arrange
-            const req = mockReq();
+            const req = mockReq({ body: { driverLocation: { lat: 10.0, lng: 20.0 } } });
             const res = mockRes();
             Booking.findById.mockResolvedValue({
                 id: 'booking-123',
@@ -290,19 +319,47 @@ describe('CheckingCheckoutController', () => {
             });
         });
 
+        it('should return 400 if distance exceeds the 50-meter tolerance', async () => {
+            // Arrange
+            const req = mockReq({ body: { driverLocation: { lat: 10.0, lng: 20.0 } } });
+            const res = mockRes();
+            Booking.findById.mockResolvedValue({
+                id: 'booking-123',
+                driver_id: 'driver-uuid',
+                booking_status: 'active',
+                spot_latitude: '10.001',
+                spot_longitude: '20.001',
+            });
+            calculateDistance.mockReturnValue(55); // Distance is 55 meters (> 50m limit)
+
+            // Act
+            await CheckingCheckoutController.checkOut(req, res);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.json).toHaveBeenCalledWith({
+                error: 'Too far from the spot. Calculated distance: 55 meters.',
+                currentDistance: 55,
+            });
+            expect(Booking.checkOut).not.toHaveBeenCalled();
+        });
+
         // ==========================================
         // BUSINESS LOGIC TESTS
         // ==========================================
 
         it('should return 400 if database checkOut operation fails', async () => {
             // Arrange
-            const req = mockReq();
+            const req = mockReq({ body: { driverLocation: { lat: 10.0, lng: 20.0 } } });
             const res = mockRes();
             Booking.findById.mockResolvedValue({
                 id: 'booking-123',
                 driver_id: 'driver-uuid',
                 booking_status: 'active',
+                spot_latitude: '10.0',
+                spot_longitude: '20.0',
             });
+            calculateDistance.mockReturnValue(5);
             Booking.checkOut.mockResolvedValue(null);
 
             // Act
@@ -315,13 +372,16 @@ describe('CheckingCheckoutController', () => {
 
         it('should return 200 with normal message when checkout is on time (no overtime)', async () => {
             // Arrange
-            const req = mockReq();
+            const req = mockReq({ body: { driverLocation: { lat: 10.0, lng: 20.0 } } });
             const res = mockRes();
             Booking.findById.mockResolvedValue({
                 id: 'booking-123',
                 driver_id: 'driver-uuid',
                 booking_status: 'active',
+                spot_latitude: '10.0',
+                spot_longitude: '20.0',
             });
+            calculateDistance.mockReturnValue(2);
 
             const checkedOutBooking = {
                 overtime_hours: '0.00', // No overtime
@@ -339,8 +399,10 @@ describe('CheckingCheckoutController', () => {
             await CheckingCheckoutController.checkOut(req, res);
 
             // Assert
+            expect(calculateDistance).toHaveBeenCalledWith(10.0, 20.0, 10.0, 20.0);
             expect(res.json).toHaveBeenCalledWith({
                 message: 'Checked out on time!',
+                distance: 2,
                 booking: checkedOutBooking,
                 summary: {
                     expectedDuration: 2.0,
@@ -357,13 +419,16 @@ describe('CheckingCheckoutController', () => {
 
         it('should return 200 with overtime message when checkout is late (has overtime)', async () => {
             // Arrange
-            const req = mockReq();
+            const req = mockReq({ body: { driverLocation: { lat: 10.0, lng: 20.0 } } });
             const res = mockRes();
             Booking.findById.mockResolvedValue({
                 id: 'booking-123',
                 driver_id: 'driver-uuid',
                 booking_status: 'active',
+                spot_latitude: '10.0',
+                spot_longitude: '20.0',
             });
+            calculateDistance.mockReturnValue(3);
 
             const checkedOutBooking = {
                 overtime_hours: '1.50', // Driver stayed extra
@@ -383,6 +448,7 @@ describe('CheckingCheckoutController', () => {
             // Assert
             expect(res.json).toHaveBeenCalledWith({
                 message: 'Checked out. You stayed 1.50 hours extra.',
+                distance: 3,
                 booking: checkedOutBooking,
                 summary: expect.objectContaining({
                     actualDuration: 3.5,
@@ -398,7 +464,7 @@ describe('CheckingCheckoutController', () => {
 
         it('should return 500 and log error when an exception is thrown during checkout', async () => {
             // Arrange
-            const req = mockReq();
+            const req = mockReq({ body: { driverLocation: { lat: 10.0, lng: 20.0 } } });
             const res = mockRes();
             
             const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});

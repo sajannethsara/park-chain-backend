@@ -72,6 +72,15 @@ const checkIn = async (req, res) => {
 // ============================================
 const checkOut = async (req, res) => {
   try {
+    const { driverLocation } = req.body;
+    const CHECK_OUT_RADIUS_TOLERANCE_METERS = 50;
+
+    if (!driverLocation || driverLocation.lat == null || driverLocation.lng == null) {
+      return res.status(400).json({
+        error: 'Driver location (lat, lng) is required for check-out.'
+      });
+    }
+
     const existing = await Booking.findById(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Booking not found.' });
     if (existing.driver_id !== req.user.id) {
@@ -81,6 +90,20 @@ const checkOut = async (req, res) => {
     if (existing.booking_status !== 'active') {
       return res.status(400).json({
         error: `Cannot check out. Booking status is: ${existing.booking_status}. Must be 'active'.`
+      });
+    }
+
+    const distance = calculateDistance(
+      parseFloat(driverLocation.lat),
+      parseFloat(driverLocation.lng),
+      parseFloat(existing.spot_latitude),
+      parseFloat(existing.spot_longitude)
+    );
+
+    if (distance > CHECK_OUT_RADIUS_TOLERANCE_METERS) {
+      return res.status(400).json({
+        error: `Too far from the spot. Calculated distance: ${Math.round(distance)} meters.`,
+        currentDistance: Math.round(distance)
       });
     }
 
@@ -97,6 +120,7 @@ const checkOut = async (req, res) => {
       message: hasOvertime
         ? `Checked out. You stayed ${booking.overtime_hours} hours extra.`
         : 'Checked out on time!',
+      distance: Math.round(distance),
       booking,
       summary: {
         expectedDuration: parseFloat(booking.expected_duration_hours),
